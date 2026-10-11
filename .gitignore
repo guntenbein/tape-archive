@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+# данные и результаты живут вне репозитория (см. TAPEARCH_DATA)
+/data/
+*.mp3
+*.flac
+*.wav
+*.m4a
+*.npz

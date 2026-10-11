@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Архив кассетных записей</h1>
+<div class="sub">{{ files|length }} лент · {{ total_hms }} звука ·
+  найдено музыкальных сегментов: {{ totals.music }} · из них полных: {{ totals.complete }} ·
+  кластеров песен: {{ n_clusters }}</div>
+
+<div class="hint">Оценки: <span class="badge g-A">A</span> обязательно послушать и кандидат на реставрацию ·
+<span class="badge g-B">B</span> потенциально интересно ·
+<span class="badge g-C">C</span> архивный материал ·
+<span class="badge g-D">D</span> технический мусор.
+Оценивается сохранность и полезность записи, а не музыка.</div>
+
+<h2>Ленты</h2>
+<table>
+<thead><tr><th>Лента</th><th>Датировка</th><th>Длина</th><th>Музыка</th><th>Разговоры</th>
+<th>A</th><th>B</th><th>C</th><th>D</th><th>Техника</th></tr></thead>
+<tbody>
+{% for f in files %}
+<tr class="seg">
+  <td><a href="{{ f.slug }}.html">{{ f.name }}</a><div class="sub">{{ f.n_segments }} сегментов</div></td>
+  <td>{% if f.dates.precise %}<b>{{ f.dates.precise|join(', ') }}</b>
+      <div class="sub">названа в записи</div>
+      {% elif f.dates.span %}{{ f.dates.span }}<div class="sub">по расшифровке</div>
+      {% else %}<span class="sub">—</span>{% endif %}</td>
+  <td class="num">{{ f.duration_hms }}</td>
+  <td class="num">{{ f.music_hms }}<div class="sub">полных {{ f.n_complete }}, оборванных {{ f.n_partial }}</div></td>
+  <td class="num">{{ f.speech_hms }}</td>
+  <td class="num">{{ f.counts.A }}</td><td class="num">{{ f.counts.B }}</td>
+  <td class="num">{{ f.counts.C }}</td><td class="num">{{ f.counts.D }}</td>
+  <td class="sub">{{ f.tech_short }}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+
+{% if top %}
+<h2>Самое интересное во всём архиве</h2>
+<table>
+<thead><tr><th>Лента</th><th>Время</th><th>Что это</th><th>Оценка</th></tr></thead>
+<tbody>
+{% for t in top %}
+<tr class="seg">
+  <td><a href="{{ t.slug }}.html">{{ t.name }}</a></td>
+  <td class="tc"><a href="{{ t.slug }}.html">{{ t.start_hms }}–{{ t.end_hms }}</a></td>
+  <td><span class="cat cat-{{ t.category }}">{{ t.category_ru }}</span></td>
+  <td><span class="badge g-{{ t.grade }}">{{ t.grade }}</span> {{ t.headline_tail }}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>Песни архива</h1>
+<div class="sub">{{ clusters|length }} {{ clusters|length|plural('вещь сыграна','вещи сыграны','вещей сыграны') }} больше одного раза ·
+  {{ standalone|length }} {{ standalone|length|plural('отдельное исполнение','отдельных исполнения','отдельных исполнений') }}</div>
+
+<div class="hint">Одна вещь опознаётся по профилю звучащих нот, поэтому дубль в другой
+тональности и в другом темпе всё равно попадает в тот же кластор. «Та же запись» —
+это отдельная проверка по chromaprint: она означает, что один и тот же звук попал
+в архив дважды, а не что вещь сыграли второй раз.</div>
+
+{% if clusters %}<h2>Сыграно несколько раз</h2>{% endif %}
+{% for c in clusters %}
+<h3>{{ c.id }} — {{ c.n_members }} исполнений{% if c.title %}: {{ c.title }}{% endif %}</h3>
+<table>
+<thead><tr><th></th><th>Лента</th><th>Время</th><th>Длина</th><th>Состояние</th><th>Оценка</th><th></th></tr></thead>
+<tbody>
+{% for m in c.members %}
+<tr class="seg">
+  <td>{% if m.is_best %}<span class="badge g-A">★</span>{% endif %}</td>
+  <td><a href="{{ m.slug }}.html#{{ m.anchor }}">{{ m.name }}</a></td>
+  <td class="tc"><a href="{{ m.slug }}.html#{{ m.anchor }}">{{ m.start_hms }}–{{ m.end_hms }}</a></td>
+  <td class="num">{{ m.dur_h }}</td>
+  <td>{{ m.completeness_ru }}{% if m.has_vocal %} · вокал{% endif %}</td>
+  <td>{% if m.grade %}<span class="badge g-{{ m.grade }}">{{ m.grade }}</span> {{ m.headline_tail }}{% endif %}</td>
+  <td>{% if m.is_best %}<b>лучший источник</b>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+<details><summary>как совпали между собой</summary>
+<ul class="parts">
+{% for l in c.links %}
+<li><b>{{ l.pair }}</b><span>совпало {{ l.match_s }} с, счёт {{ l.score }},
+  сдвиг {{ l.semitones }} полутона, темп ×{{ l.tempo_ratio }}{% if l.same_recording %} —
+  <b>это та же самая запись</b> (chromaprint BER {{ l.fingerprint_ber }}){% endif %}</span></li>
+{% endfor %}
+</ul>
+{% if c.best_why %}<div class="why">Лучший источник выбран так: {{ c.best_why }}</div>{% endif %}
+</details>
+{% endfor %}
+
+{% if standalone %}
+<h2>Отдельные исполнения</h2>
+<div class="hint">Сыграны по одному разу. Повторов не найдено — но это не делает их
+менее ценными: длинная цельная вещь, записанная единожды, часто и есть самое
+интересное на ленте.</div>
+<table>
+<thead><tr><th>Лента</th><th>Время</th><th>Длина</th><th>Состояние</th><th>Оценка</th></tr></thead>
+<tbody>
+{% for m in standalone %}
+<tr class="seg">
+  <td><a href="{{ m.slug }}.html#{{ m.anchor }}">{{ m.name }}</a></td>
+  <td class="tc"><a href="{{ m.slug }}.html#{{ m.anchor }}">{{ m.start_hms }}–{{ m.end_hms }}</a></td>
+  <td class="num">{{ m.dur_h }}</td>
+  <td>{{ m.completeness_ru }}{% if m.has_vocal %} · вокал{% endif %}</td>
+  <td>{% if m.grade %}<span class="badge g-{{ m.grade }}">{{ m.grade }}</span> {{ m.headline_tail }}{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+{% endif %}
+
+{% if near %}
+<h2>Возможно, то же самое — но уверенности нет</h2>
+<div class="hint">Эти пары похожи, но не дотянули до порога. Машина тут честно
+не знает: такие совпадения бывают и у разных вещей одной группы в одной
+тональности. Послушай по десять секунд с каждой стороны — ухом это решается
+сразу. Если окажется, что это одна вещь, скажи, и я опущу порог.</div>
+<table>
+<thead><tr><th>Фрагмент A</th><th>Фрагмент B</th><th>Совпало</th><th>Похожесть</th><th>Чего не хватило</th></tr></thead>
+<tbody>
+{% for n in near %}
+<tr class="seg">
+  <td class="tc"><a href="{{ n.a_slug }}.html#{{ n.a_anchor }}">{{ n.a_time }}</a></td>
+  <td class="tc"><a href="{{ n.b_slug }}.html#{{ n.b_anchor }}">{{ n.b_time }}</a></td>
+  <td class="num">{{ n.match_s }} с (подряд {{ n.run_s }})</td>
+  <td class="num">{{ n.mean_similarity }}</td>
+  <td class="sub">{{ n.why }}</td>
+</tr>
+{% endfor %}
+</tbody></table>
+{% endif %}
+
+{% if not clusters %}
+<p class="sub">Повторов пока не найдено. На одной ленте это нормально: сравнение
+дублей становится интереснее, когда в анализе несколько записей.</p>
+{% endif %}
+{% endblock %}

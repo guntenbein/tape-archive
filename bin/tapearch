@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Точка входа: всегда через venv проекта, чтобы прогон был воспроизводим.
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+exec "$ROOT/.venv/bin/python" -m tapearch.cli "$@"

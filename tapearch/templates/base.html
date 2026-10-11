@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ru"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>{{ title }}</title>
+<link rel="stylesheet" href="assets/style.css">
+</head><body>
+<nav>
+  <a href="index.html">Весь архив</a>
+  <a href="songs.html">Песни и дубли</a>
+  <span class="spacer"></span>
+  <span class="sub" style="margin:0">{{ generated }}</span>
+</nav>
+<div class="wrap">
+{% block body %}{% endblock %}
+</div>
+{% block player %}{% endblock %}
+<script src="assets/app.js"></script>
+{% block scripts %}{% endblock %}
+</body></html>

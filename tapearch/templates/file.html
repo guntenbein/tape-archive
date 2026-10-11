@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block body %}
+<h1>{{ f.name }}</h1>
+<div class="sub">{{ f.duration_hms }} · {{ segs|length }} сегментов ·
+  A: {{ counts.A }} · B: {{ counts.B }} · C: {{ counts.C }} · D: {{ counts.D }}</div>
+
+{% if spoken_dates %}
+<div class="hint"><b>Дата названа в самой записи:</b>
+{% for d in spoken_dates %}
+  <a href="#" data-play data-start="{{ d.at }}">{{ d.display }}</a>
+  <span class="sub">({{ '%02d'|format(d.at // 60) }}:{{ '%02d'|format(d.at % 60) }}, уверенность {{ d.confidence }})</span>{% if not loop.last %} · {% endif %}
+{% endfor %}
+<br><span class="sub">Это точнее, чем датировка в имени файла: имена давали при оцифровке, по памяти.</span>
+</div>
+{% endif %}
+
+<canvas id="map"></canvas>
+<div class="sub" style="margin-top:6px">
+  Полоса — вся лента. Цвет: <span style="color:var(--music)">музыка</span>,
+  <span style="color:var(--speech)">разговор</span>,
+  <span style="color:var(--setup)">настройка</span>,
+  <span style="color:var(--applause)">хлопки</span>,
+  <span style="color:var(--noise)">шум</span>,
+  <span style="color:var(--dim)">тишина</span>. Клик — перейти.
+</div>
+
+<h2>Технический паспорт</h2>
+<div class="tech">
+  {% for k, v in tech %}<div><span>{{ k }}:</span> {{ v }}</div>{% endfor %}
+</div>
+
+<h2>Сегменты</h2>
+<div class="chips">
+  <button data-filter="grade" data-value="A">только A</button>
+  <button data-filter="grade" data-value="B">только B</button>
+  <button data-filter="cat" data-value="music_complete">полные песни</button>
+  <button data-filter="cat" data-value="music_partial">оборванные</button>
+  <button data-filter="cat" data-value="conversation">разговоры</button>
+  <button data-filter="star">только помеченные ★</button>
+  <span class="spacer"></span>
+  <button id="export">выгрузить пометки в JSON</button>
+  <label class="sub" style="margin:0">загрузить: <input id="importfile" type="file" accept="application/json"></label>
+</div>
+<div class="hint">Пометки ★ / реставрировать / не нужно хранятся в браузере.
+  Чтобы перенести их на другую машину или отдать следующей стадии pipeline — выгрузи JSON.</div>
+
+<table>
+<thead><tr>
+  <th></th><th>Время</th><th style="width:16%">Форма волны</th>
+  <th>Что это</th><th>Оценка и почему</th><th>Пометки</th>
+</tr></thead>
+<tbody>
+{% for s in segs %}
+<tr class="seg" id="{{ s.anchor }}" data-grade="{{ s.grade }}" data-cat="{{ s.category }}" data-key="{{ s.key }}">
+  <td><button class="play" data-play data-start="{{ s.start }}" data-end="{{ s.end }}" title="играть сегмент">▶</button></td>
+  <td class="tc">{{ s.start_hms }}<br>{{ s.end_hms }}<br><span class="dur">{{ s.dur_h }}</span></td>
+  <td><canvas class="wf" data-start="{{ s.start }}" data-end="{{ s.end }}" data-color="{{ s.color }}"></canvas></td>
+  <td>
+    <span class="cat cat-{{ s.category }}">{{ s.category_ru }}</span>
+    {% if s.cluster %}<br><span class="sub">песня {{ s.cluster.cluster_id }},
+      {{ s.cluster.n_members }} исполнений{% if s.cluster.is_best %} — <b>лучший дубль</b>{% endif %}</span>{% endif %}
+    {% if s.attrs %}<div class="why">{{ s.attrs }}</div>{% endif %}
+  </td>
+  <td>
+    <span class="badge g-{{ s.grade }}">{{ s.grade }}</span> {{ s.headline_tail }}
+    <div class="why">{{ s.why }}</div>
+    <details><summary>из чего сложилась оценка и что с техникой</summary>
+      <ul class="parts">
+      {% for p in s.parts %}
+        <li><b>{{ p.name }}</b><span class="v {{ 'pos' if p.value > 0 else ('neg' if p.value < 0 else '') }}">{{ p.value }}</span><span>{{ p.why }}</span></li>
+      {% endfor %}
+      </ul>
+      {% if s.tech_rows %}<ul class="parts" style="margin-top:8px">
+      {% for k, v in s.tech_rows %}<li><b>{{ k }}</b><span>{{ v }}</span></li>{% endfor %}
+      </ul>{% endif %}
+      {% if s.restoration %}<div class="why" style="margin-top:8px"><b>если реставрировать:</b>
+        <ul class="parts">{% for p in s.restoration.plan %}<li><span>{{ p }}</span></li>{% endfor %}</ul>
+        {% if s.restoration.blockers %}<div class="warn">не вернётся: {{ s.restoration.blockers|join('; ') }}</div>{% endif %}
+      </div>{% endif %}
+    </details>
+    {% if s.transcript %}
+    <details {% if s.category == 'conversation' %}{% endif %}>
+      <summary>расшифровка ({{ s.transcript.language }}{% if not s.transcript.quality.usable %}, ненадёжна{% endif %})</summary>
+      <div class="tr">
+        {% if not s.transcript.quality.usable %}<div class="warn">{{ s.transcript.quality.note }}</div>{% endif %}
+        {% for it in s.transcript.phrases %}
+        <p><span class="t" data-play data-start="{{ it.abs_start }}" data-end="{{ it.abs_end }}">{{ it.hms }}</span>{{ it.text }}</p>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </td>
+  <td><div class="marks">
+    <button data-mark="star" data-key="{{ s.key }}" title="интересно">★</button>
+    <button data-mark="restore" data-key="{{ s.key }}" title="реставрировать">⟳</button>
+    <button data-mark="ignore" data-key="{{ s.key }}" title="не нужно">✕</button>
+  </div></td>
+</tr>
+{% endfor %}
+</tbody></table>
+{% endblock %}
+
+{% block player %}
+<div id="bar">
+  <audio id="player" controls preload="metadata" src="{{ f.preview }}"></audio>
+  <span id="now">00:00.0</span>
+  <button id="limit" class="on">останавливать на конце сегмента</button>
+  <span class="sub" style="margin:0">пробел — пауза, ←/→ — ±5 с</span>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+TA.duration = {{ f.duration | tojson }};
+window.TA_BANDS = {{ bands | tojson }};
+</script>
+<script src="{{ f.peaks_js }}"></script>
+{% endblock %}

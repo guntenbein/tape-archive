@@ -1,0 +1,14 @@
+# Пины намеренно жёсткие: прогон должен воспроизводиться через полгода.
+numpy==2.2.6
+scipy==1.15.3
+soundfile==0.13.1
+librosa==0.11.0
+faster-whisper==1.2.0
+networkx==3.4.2
+Jinja2==3.1.6
+tqdm==4.67.1
+# теггер AudioSet (необязателен: без него pipeline работает на эвристиках)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.9.1
+panns-inference==0.1.1
+torchlibrosa==0.1.0
